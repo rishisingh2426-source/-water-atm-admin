@@ -1,4 +1,5 @@
 "use client";
+
 import { db } from "../firebase";
 import { useEffect, useState } from "react";
 
@@ -7,8 +8,6 @@ import {
   addDoc,
   onSnapshot,
 } from "firebase/firestore";
-
-
 
 export default function Home() {
 
@@ -22,8 +21,9 @@ export default function Home() {
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [card, setCard] = useState("");
+  const [address, setAddress] = useState("");
   const [amount, setAmount] = useState("");
+  const [rechargeDate, setRechargeDate] = useState("");
 
   const [expense, setExpense] = useState("");
 
@@ -42,66 +42,42 @@ export default function Home() {
       setLoggedIn(true);
     }
 
-      const unsubscribeRecharges = onSnapshot(
-    collection(db, "recharges"),
-    (snapshot) => {
+    const unsubscribeRecharges = onSnapshot(
+      collection(db, "recharges"),
+      (snapshot) => {
 
-      const rechargeData: any[] = [];
+        const rechargeData: any[] = [];
 
-      snapshot.forEach((doc) => {
+        snapshot.forEach((doc) => {
+          rechargeData.push(doc.data());
+        });
 
-        rechargeData.push(doc.data());
+        setRecharges(rechargeData);
 
-      });
-
-      setRecharges(rechargeData);
-
-    }
-  );
-
-  const unsubscribeExpenses = onSnapshot(
-    collection(db, "expenses"),
-    (snapshot) => {
-
-      const expenseData: any[] = [];
-
-      snapshot.forEach((doc) => {
-
-        expenseData.push(doc.data());
-
-      });
-
-      setExpenses(expenseData);
-
-    }
-  );
-
-  return () => {
-
-    unsubscribeRecharges();
-    unsubscribeExpenses();
-
-  };
-
-}, []);
-
-  useEffect(() => {
-
-    localStorage.setItem(
-      "recharges",
-      JSON.stringify(recharges)
+      }
     );
 
-  }, [recharges]);
+    const unsubscribeExpenses = onSnapshot(
+      collection(db, "expenses"),
+      (snapshot) => {
 
-  useEffect(() => {
+        const expenseData: any[] = [];
 
-    localStorage.setItem(
-      "expenses",
-      JSON.stringify(expenses)
+        snapshot.forEach((doc) => {
+          expenseData.push(doc.data());
+        });
+
+        setExpenses(expenseData);
+
+      }
     );
 
-  }, [expenses]);
+    return () => {
+      unsubscribeRecharges();
+      unsubscribeExpenses();
+    };
+
+  }, []);
 
   const handleLogin = () => {
 
@@ -131,9 +107,9 @@ export default function Home() {
     localStorage.removeItem("loggedIn");
   };
 
-  const handleRecharge = () => {
+  const handleRecharge = async () => {
 
-    if (!name || !phone || !card || !amount) {
+    if (!name || !phone || !address || !amount || !rechargeDate) {
       alert("Please fill all fields");
       return;
     }
@@ -150,24 +126,25 @@ export default function Home() {
     const newRecharge = {
       name,
       phone,
-      card,
+      address,
       amount,
       balance:
         previousBalance + Number(amount),
-      date: new Date().toLocaleString(),
+      rechargeDate,
+      createdAt: new Date().toLocaleString(),
     };
 
-addDoc(
-  collection(db, "recharges"),
-  newRecharge
-);
+    await addDoc(
+      collection(db, "recharges"),
+      newRecharge
+    );
 
     setSuccessMessage(
       `Recharge Successful for ${name}`
     );
 
     const message =
-      `Hello ${name}, Your Water ATM card has been recharged with ₹${amount}. Current Balance: ₹${newRecharge.balance}`;
+      `Hello ${name}, Your Water ATM recharge of ₹${amount} is successful. Current Balance: ₹${newRecharge.balance}`;
 
     window.open(
       `https://wa.me/91${phone}?text=${encodeURIComponent(message)}`
@@ -175,11 +152,13 @@ addDoc(
 
     setName("");
     setPhone("");
-    setCard("");
+    setAddress("");
     setAmount("");
+    setRechargeDate("");
+
   };
 
-  const handleExpense = () => {
+  const handleExpense = async () => {
 
     if (!expense) {
       alert("Enter expense amount");
@@ -191,10 +170,10 @@ addDoc(
       date: new Date().toLocaleString(),
     };
 
-addDoc(
-  collection(db, "expenses"),
-  newExpense
-);
+    await addDoc(
+      collection(db, "expenses"),
+      newExpense
+    );
 
     setExpense("");
   };
@@ -203,9 +182,9 @@ addDoc(
     recharges.filter(
       (item) =>
         item.name
-          .toLowerCase()
+          ?.toLowerCase()
           .includes(search.toLowerCase()) ||
-        item.phone.includes(search)
+        item.phone?.includes(search)
     );
 
   const totalRecharge =
@@ -218,7 +197,7 @@ addDoc(
   const totalExpense =
     expenses.reduce(
       (total, item) =>
-        total + item.amount,
+        total + Number(item.amount),
       0
     );
 
@@ -282,7 +261,7 @@ addDoc(
             </h1>
 
             <p className="text-slate-600 mt-2">
-              Recharge cards and manage customers
+              Recharge customers and manage expenses
             </p>
 
           </div>
@@ -388,10 +367,10 @@ addDoc(
 
             <input
               type="text"
-              placeholder="Card ID"
-              value={card}
+              placeholder="Customer Address"
+              value={address}
               onChange={(e) =>
-                setCard(e.target.value)
+                setAddress(e.target.value)
               }
               className="border border-slate-300 rounded-xl px-4 py-3 text-black"
             />
@@ -402,6 +381,15 @@ addDoc(
               value={amount}
               onChange={(e) =>
                 setAmount(e.target.value)
+              }
+              className="border border-slate-300 rounded-xl px-4 py-3 text-black"
+            />
+
+            <input
+              type="date"
+              value={rechargeDate}
+              onChange={(e) =>
+                setRechargeDate(e.target.value)
               }
               className="border border-slate-300 rounded-xl px-4 py-3 text-black"
             />
@@ -470,19 +458,19 @@ addDoc(
 
                 <tr className="border-b">
 
-                  <th className="py-3">
-                    Name
-                  </th>
+                  <th className="py-3">Name</th>
 
                   <th>Phone</th>
 
-                  <th>Card ID</th>
+                  <th>Address</th>
 
                   <th>Amount</th>
 
                   <th>Balance</th>
 
-                  <th>Date</th>
+                  <th>Recharge Date</th>
+
+                  <th>Created At</th>
 
                 </tr>
 
@@ -504,7 +492,7 @@ addDoc(
 
                       <td>{item.phone}</td>
 
-                      <td>{item.card}</td>
+                      <td>{item.address}</td>
 
                       <td>
                         ₹{item.amount}
@@ -514,7 +502,13 @@ addDoc(
                         ₹{item.balance}
                       </td>
 
-                      <td>{item.date}</td>
+                      <td>
+                        {item.rechargeDate}
+                      </td>
+
+                      <td>
+                        {item.createdAt}
+                      </td>
 
                     </tr>
 
