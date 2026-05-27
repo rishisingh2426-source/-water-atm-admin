@@ -4,6 +4,14 @@ import { useEffect, useState } from "react";
 
 export default function Home() {
 
+  const ADMIN_ID = "admin";
+  const ADMIN_PASSWORD = "1234";
+
+  const [loggedIn, setLoggedIn] = useState(false);
+
+  const [loginId, setLoginId] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [card, setCard] = useState("");
@@ -13,20 +21,21 @@ export default function Home() {
 
   const [search, setSearch] = useState("");
 
-  const [successMessage, setSuccessMessage] =
-    useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
   const [recharges, setRecharges] = useState<any[]>([]);
-
   const [expenses, setExpenses] = useState<any[]>([]);
 
   useEffect(() => {
 
-    const savedRecharges =
-      localStorage.getItem("recharges");
+    const savedLogin = localStorage.getItem("loggedIn");
 
-    const savedExpenses =
-      localStorage.getItem("expenses");
+    if (savedLogin === "true") {
+      setLoggedIn(true);
+    }
+
+    const savedRecharges = localStorage.getItem("recharges");
+    const savedExpenses = localStorage.getItem("expenses");
 
     if (savedRecharges) {
       setRecharges(JSON.parse(savedRecharges));
@@ -55,6 +64,34 @@ export default function Home() {
     );
 
   }, [expenses]);
+
+  const handleLogin = () => {
+
+    if (
+      loginId === ADMIN_ID &&
+      loginPassword === ADMIN_PASSWORD
+    ) {
+
+      setLoggedIn(true);
+
+      localStorage.setItem(
+        "loggedIn",
+        "true"
+      );
+
+    } else {
+
+      alert("Invalid ID or Password");
+
+    }
+  };
+
+  const handleLogout = () => {
+
+    setLoggedIn(false);
+
+    localStorage.removeItem("loggedIn");
+  };
 
   const handleRecharge = () => {
 
@@ -141,7 +178,53 @@ export default function Home() {
       0
     );
 
+  if (!loggedIn) {
+
+    return (
+
+      <div className="min-h-screen flex items-center justify-center bg-slate-100">
+
+        <div className="bg-white p-8 rounded-3xl shadow-xl w-[350px]">
+
+          <h1 className="text-3xl font-bold text-center text-blue-700 mb-6">
+            Water ATM Login
+          </h1>
+
+          <input
+            type="text"
+            placeholder="Admin ID"
+            value={loginId}
+            onChange={(e) =>
+              setLoginId(e.target.value)
+            }
+            className="border border-slate-300 rounded-xl px-4 py-3 text-black w-full mb-4"
+          />
+
+          <input
+            type="password"
+            placeholder="Password"
+            value={loginPassword}
+            onChange={(e) =>
+              setLoginPassword(e.target.value)
+            }
+            className="border border-slate-300 rounded-xl px-4 py-3 text-black w-full mb-5"
+          />
+
+          <button
+            onClick={handleLogin}
+            className="bg-blue-600 text-white w-full py-3 rounded-2xl"
+          >
+            Login
+          </button>
+
+        </div>
+
+      </div>
+    );
+  }
+
   return (
+
     <div className="min-h-screen bg-slate-100 p-6">
 
       <div className="max-w-7xl mx-auto">
@@ -159,6 +242,13 @@ export default function Home() {
             </p>
 
           </div>
+
+          <button
+            onClick={handleLogout}
+            className="bg-red-600 text-white px-5 py-3 rounded-2xl"
+          >
+            Logout
+          </button>
 
         </div>
 
@@ -314,69 +404,9 @@ export default function Home() {
 
         <div className="bg-white rounded-2xl p-6 shadow">
 
-          <div className="flex items-center justify-between mb-5">
-
-            <h2 className="text-2xl font-semibold">
-              Recharge History
-            </h2>
-
-            <button
-              onClick={() => {
-
-                const headers = [
-                  "Name",
-                  "Phone",
-                  "Card ID",
-                  "Amount",
-                  "Balance",
-                  "Date",
-                ];
-
-                const rows =
-                  filteredRecharges.map(
-                    (item) => [
-                      item.name,
-                      item.phone,
-                      item.card,
-                      item.amount,
-                      item.balance,
-                      item.date,
-                    ]
-                  );
-
-                const csvContent = [
-                  headers,
-                  ...rows,
-                ]
-                  .map((e) => e.join(","))
-                  .join("\n");
-
-                const blob = new Blob(
-                  [csvContent],
-                  {
-                    type:
-                      "text/csv;charset=utf-8;",
-                  }
-                );
-
-                const link =
-                  document.createElement("a");
-
-                link.href =
-                  URL.createObjectURL(blob);
-
-                link.download =
-                  "water-atm-report.csv";
-
-                link.click();
-
-              }}
-              className="bg-blue-600 text-white px-5 py-3 rounded-2xl"
-            >
-              Export Report
-            </button>
-
-          </div>
+          <h2 className="text-2xl font-semibold mb-5">
+            Recharge History
+          </h2>
 
           <input
             type="text"
@@ -410,8 +440,6 @@ export default function Home() {
 
                   <th>Date</th>
 
-                  <th>Action</th>
-
                 </tr>
 
               </thead>
@@ -443,27 +471,6 @@ export default function Home() {
                       </td>
 
                       <td>{item.date}</td>
-
-                      <td>
-
-                        <button
-                          onClick={() => {
-
-                            const updated =
-                              recharges.filter(
-                                (_, i) =>
-                                  i !== index
-                              );
-
-                            setRecharges(updated);
-
-                          }}
-                          className="bg-red-500 text-white px-4 py-2 rounded-xl"
-                        >
-                          Delete
-                        </button>
-
-                      </td>
 
                     </tr>
 
