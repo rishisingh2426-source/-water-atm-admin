@@ -1,6 +1,14 @@
 "use client";
-
+import { db } from "../firebase";
 import { useEffect, useState } from "react";
+
+import {
+  collection,
+  addDoc,
+  onSnapshot,
+} from "firebase/firestore";
+
+
 
 export default function Home() {
 
@@ -34,18 +42,48 @@ export default function Home() {
       setLoggedIn(true);
     }
 
-    const savedRecharges = localStorage.getItem("recharges");
-    const savedExpenses = localStorage.getItem("expenses");
+      const unsubscribeRecharges = onSnapshot(
+    collection(db, "recharges"),
+    (snapshot) => {
 
-    if (savedRecharges) {
-      setRecharges(JSON.parse(savedRecharges));
+      const rechargeData: any[] = [];
+
+      snapshot.forEach((doc) => {
+
+        rechargeData.push(doc.data());
+
+      });
+
+      setRecharges(rechargeData);
+
     }
+  );
 
-    if (savedExpenses) {
-      setExpenses(JSON.parse(savedExpenses));
+  const unsubscribeExpenses = onSnapshot(
+    collection(db, "expenses"),
+    (snapshot) => {
+
+      const expenseData: any[] = [];
+
+      snapshot.forEach((doc) => {
+
+        expenseData.push(doc.data());
+
+      });
+
+      setExpenses(expenseData);
+
     }
+  );
 
-  }, []);
+  return () => {
+
+    unsubscribeRecharges();
+    unsubscribeExpenses();
+
+  };
+
+}, []);
 
   useEffect(() => {
 
@@ -119,7 +157,10 @@ export default function Home() {
       date: new Date().toLocaleString(),
     };
 
-    setRecharges([newRecharge, ...recharges]);
+addDoc(
+  collection(db, "recharges"),
+  newRecharge
+);
 
     setSuccessMessage(
       `Recharge Successful for ${name}`
@@ -150,7 +191,10 @@ export default function Home() {
       date: new Date().toLocaleString(),
     };
 
-    setExpenses([newExpense, ...expenses]);
+addDoc(
+  collection(db, "expenses"),
+  newExpense
+);
 
     setExpense("");
   };
